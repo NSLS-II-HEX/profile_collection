@@ -8,8 +8,7 @@ file_loading_timer.start_timer(__file__)
 
 
 
-import ophyd
-from ophyd.areadetector import (AreaDetector, 
+from ophyd import (AreaDetector, 
                                 ImagePlugin,
                                 TIFFPlugin, 
                                 StatsPlugin, 
@@ -20,12 +19,16 @@ from ophyd.areadetector import (AreaDetector,
                                 CamBase,
                                 SimDetector,
                                 PvcamDetector,
-                                PvcamDetectorCam)
+                                PvcamDetectorCam,
+                                Device,
+                                HDF5Plugin,
+                                Component as Cpt,
+                                EpicsSignalWithRBV)
 
 from ophyd.areadetector.filestore_mixins import (FileStoreTIFFIterativeWrite,
                                                  FileStoreHDF5IterativeWrite,
                                                  FileStoreTIFFSquashing,
-                                                 FileStoreIterativeWrite,
+                                                 FileStoreIterativeWrite, new_short_uid,
                                                  FileStoreTIFF,
                                                  FileStoreBase)
 
@@ -40,8 +43,14 @@ from ophyd.device import BlueskyInterface
 from ophyd.device import DeviceStatus
 
 
-class HEXTIFFPlugin(TIFFPlugin, FileStoreTIFFSquashing,
-                    FileStoreIterativeWrite):
+from enum import Enum
+
+class HEXDetectorMode(Enum):
+    step = 1
+    fly = 2
+
+
+class HEXTIFFPlugin(TIFFPlugin,FileStoreIterativeWrite, Device):
     pass
 
 
@@ -113,20 +122,18 @@ class ContinuousAcquisitionTrigger(BlueskyInterface):
             self._save_started = False
 
 
-class HEXSimDetector(SimDetector):
+class HEXSimDetector(SingleTriggerV33, SimDetector):
 
-    tiff = Component(HEXTIFFPlugin, 'TIFF1:',
+    tiff = Cpt(HEXTIFFPlugin, 'TIFF1:',
              write_path_template='/a/b/c/',
              read_path_template='/a/b/c',
-             cam_name='cam',  
-             proc_name='proc', 
              read_attrs=[],
              root=DATA_ROOT)
 
 
 class KinetixDetectorCam(PvcamDetectorCam):
 
-    wait_for_plugins = Component(EpicsSignal, 'WaitForPlugins',
+    wait_for_plugins = Cpt(EpicsSignal, 'WaitForPlugins',
                            string=True, kind='config')
 
     def __init__(self, *args, **kwargs):
@@ -146,37 +153,35 @@ class KinetixDetectorCam(PvcamDetectorCam):
 
 
 class HEXKinetix(PvcamDetector):
-    image = Component(ImagePlugin, 'image1:')
+    image = Cpt(ImagePlugin, 'image1:')
 
-    tiff = Component(HEXTIFFPlugin, 'TIFF1:',
+    tiff = Cpt(HEXTIFFPlugin, 'TIFF1:',
              write_path_template='/a/b/c/',
              read_path_template='/a/b/c',
-             cam_name='cam',  
-             proc_name='proc', 
              read_attrs=[],
              root=DATA_ROOT)
 
 
-    proc = Component(ProcessPlugin, 'Proc1:')
+    proc = Cpt(ProcessPlugin, 'Proc1:')
 
     # These attributes together replace `num_images`. They control
     # summing images before they are stored by the detector (a.k.a. "tiff
     # squashing").
-    images_per_set = Component(Signal, value=1, add_prefix=())
-    number_of_sets = Component(Signal, value=1, add_prefix=())
+    images_per_set = Cpt(Signal, value=1, add_prefix=())
+    number_of_sets = Cpt(Signal, value=1, add_prefix=())
 
-    pixel_size = Component(Signal, value=.000005, kind='config') #unknown
-    detector_type = Component(Signal, value='Emergent', kind='config')
-    stats1 = Component(StatsPluginV33, 'Stats1:', kind = 'hinted')
-    #stats2 = Component(StatsPluginV33, 'Stats2:')
-    #stats3 = Component(StatsPluginV33, 'Stats3:')
-    #stats4 = Component(StatsPluginV33, 'Stats4:')
-    #stats5 = Component(StatsPluginV33, 'Stats5:', kind = 'hinted')
+    pixel_size = Cpt(Signal, value=.000005, kind='config') #unknown
+    detector_type = Cpt(Signal, value='Emergent', kind='config')
+    stats1 = Cpt(StatsPluginV33, 'Stats1:', kind = 'hinted')
+    #stats2 = Cpt(StatsPluginV33, 'Stats2:')
+    #stats3 = Cpt(StatsPluginV33, 'Stats3:')
+    #stats4 = Cpt(StatsPluginV33, 'Stats4:')
+    #stats5 = Cpt(StatsPluginV33, 'Stats5:', kind = 'hinted')
 
-    roi1 = Component(ROIPlugin, 'ROI1:')
-    #roi2 = Component(ROIPlugin, 'ROI2:')
-    #roi3 = Component(ROIPlugin, 'ROI3:')
-    #roi4 = Component(ROIPlugin, 'ROI4:')
+    roi1 = Cpt(ROIPlugin, 'ROI1:')
+    #roi2 = Cpt(ROIPlugin, 'ROI2:')
+    #roi3 = Cpt(ROIPlugin, 'ROI3:')
+    #roi4 = Cpt(ROIPlugin, 'ROI4:')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -212,32 +217,30 @@ def initialize_hex_detector(detector_type, detector_name, pv_prefix, read_path_t
         [description]
     """
 
-    try:
-        # Intialize object instance of specified detector type, along with tiff plugin
-        print(f'Initializing {detector_name.upper()} detector...')
-        detector_obj = detector_type(pv_prefix, name=detector_name,
-                                     read_attrs=['tiff', 'stats1.total'],
-                                     plugin_name='tiff')
+    #try:
+    # Intialize object instance of specified detector type, along with tiff plugin
+    print(f'Initializing {detector_name.upper()} detector...')
+    detector_obj = detector_type(pv_prefix, name=detector_name)
 
-        # Adjust read/write path templates for tiff plugin if specified
-        if read_path_template is not None:
-            detector_obj.tiff.read_path_template = read_path_template
-        else:
-            detector_obj.tiff.read_path_template = f'{DATA_ROOT}/{detector_obj.name}_data/%Y/%m/%d/'
+    # Adjust read/write path templates for tiff plugin if specified
+    if read_path_template is not None:
+        detector_obj.tiff.read_path_template = read_path_template
+    else:
+        detector_obj.tiff.read_path_template = f'{DATA_ROOT}/{detector_obj.name}_data/%Y/%m/%d/'
 
-        if write_path_template is not None:
-            detector_obj.tiff.write_path_template = write_path_template
-        else:
-            detector_obj.tiff.write_path_template = f'{DATA_ROOT}/{detector_obj.name}_data/%Y/%m/%d/'
+    if write_path_template is not None:
+        detector_obj.tiff.write_path_template = write_path_template
+    else:
+        detector_obj.tiff.write_path_template = f'{DATA_ROOT}/{detector_obj.name}_data/%Y/%m/%d/'
 
-        # Make sure the detector is non-blocking
-        detector_obj.cam.ensure_nonblocking()
+    # Make sure the detector is non-blocking
+    #detector_obj.cam.ensure_nonblocking()
 
-        return detector_obj
-    except Exception as exc:
-        print(exc)
-        print(f'\nUnable to initiate {detector_name.upper()} camera. Is it connected, with a running IOC?')
-        pass
+    return detector_obj
+    #except Exception as exc:
+    #    print(exc)
+    #    print(f'\nUnable to initiate {detector_name.upper()} camera. Is it connected, with a running IOC?')
+    #    pass
 
 
 sim_detector = initialize_hex_detector(HEXSimDetector, 'cam-sim1', '13SIM1:')

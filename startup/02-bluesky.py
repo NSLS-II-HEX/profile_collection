@@ -1,34 +1,38 @@
 file_loading_timer.start_timer(__file__)
 
+import os
+import nslsii
+from bluesky.plans import count
 
-import ophyd
-from ophyd.areadetector import (AreaDetector, 
-                                ImagePlugin,
-                                TIFFPlugin, 
-                                StatsPlugin, 
-                                ProcessPlugin, 
-                                ROIPlugin, 
-                                TransformPlugin,
-                                OverlayPlugin,
-                                CamBase)
+from bluesky.utils import PersistentDict
+from bluesky import RunEngine
 
-from ophyd.areadetector.filestore_mixins import (FileStoreTIFFIterativeWrite,
-                                                 FileStoreHDF5IterativeWrite,
-                                                 FileStoreTIFFSquashing,
-                                                 FileStoreIterativeWrite,
-                                                 FileStoreTIFF,
-                                                 FileStoreBase
-                                                 )
+# See docstring for nslsii.configure_base() for more details
+#nslsii.configure_base(get_ipython().user_ns,'xpdd', pbar=False, bec=True,
+#                      magics=True, mpl=True, epics_context=False)
+
+# db.reg.set_root_map({'/direct/XF28ID1':'/direct/XF28ID2'})
+
+# At the end of every run, verify that files were saved and
+# print a confirmation message.
+# from bluesky.callbacks.broker import verify_files_saved, post_run
+# RE.subscribe(post_run(verify_files_saved, db),'stop')
+
+# Uncomment the following lines to turn on verbose messages for
+# debugging.
+# import logging
+# ophyd.logger.setLevel(logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 
-from ophyd import Component
+directory = os.path.expanduser("~/.config/bluesky/md")
+os.makedirs(directory, exist_ok=True)
+md = PersistentDict(directory)
 
-from ophyd import Signal, EpicsSignal, EpicsSignalRO
-from nslsii.ad33 import SingleTriggerV33, StatsPluginV33
-from ophyd.areadetector import (EpicsSignalWithRBV as SignalWithRBV)
-
-from ophyd.device import BlueskyInterface
-from ophyd.device import DeviceStatus
+RE = RunEngine(md)
+RE.md['facility'] = 'NSLS-II'
+RE.md['group'] = 'HEX'
+RE.md['beamline_id'] = '27-ID'
 
 
 file_loading_timer.stop_timer(__file__)
