@@ -21,7 +21,7 @@ def count_germ(count_time, num=1, detector=germ_detector):
     return uid
 
 
-def sweep_motion(detector, count_time, motor, start, stop, max_moves=1000):
+def sweep_motion(detector, count_time, motor, start, stop, max_moves=1000, md=None):
     # TODO: update the metadata to record motor/detector information.
     """
         From "RE(bp.scan([germ_detector], sample_tower.axis_z1, 7, 7.5, 5))":
@@ -49,6 +49,12 @@ def sweep_motion(detector, count_time, motor, start, stop, max_moves=1000):
         7,
         7.5]}}
     """
+    if md is None:
+        md={}
+    if "calibrant" not in md:
+        raise KeyError("Please specify calibrant as a string")
+    if "export_dir" not in md:
+        md["export_dir"] = "/nsls2/data/hex/proposals/commissioning/pass-315258/exported_data"
     init_pos = yield from bps.rd(motor)
     print(f"{init_pos = }")
     yield from bps.mv(motor, start)
@@ -60,8 +66,19 @@ def sweep_motion(detector, count_time, motor, start, stop, max_moves=1000):
         else:
             return False
 
+    _md = {"plan_args":
+            {"count_time": count_time,
+             "motor": motor.name,
+             "start": start,
+             "stop": stop,
+             "max_moves": max_moves,
+            },
+          "theta": round(theta.user_readback.get(), 3),
+          }
+    _md.update(md)
+
     @bpp.stage_decorator([detector])
-    @bpp.run_decorator()
+    @bpp.run_decorator(md=_md)
     def inner():
         yield from bps.mv(detector.count_time, count_time)
         yield from bps.trigger(detector, wait=False, group="germ")

@@ -90,5 +90,17 @@ class MotorValuesMCA1(Device):
 
 mca1_motors = MotorValuesMCA1("XF:27IDA-OP:", name="mca1_motors", kind=Kind.normal)
 
+class EDXD(Device):
+    # XF:27IDF-OP:1{EDXD:1-Ax:X}Mtr.VAL
+    axis_x = Cpt(EpicsMotorWithDescription, "X}Mtr")
+    # XF:27IDF-OP:1{EDXD:1-Ax:Y}Mtr.VAL
+
+    # XF:27IDF-OP:1{EDXD:1-Ax:Rx}Mtr.VAL
+    axis_rx = Cpt(EpicsMotorWithDescription, "Rx}Mtr")
+
+edxd = EDXD("XF:27IDF-OP:1{EDXD:1-Ax:", name="edxd")
+
+theta = edxd.axis_rx
+
 # sd (SuppelementalData) is an attribute of RE, defined in the nslsii.__init__().
 sd.baseline += [getattr(mca1_motors, m) for m in mca1_motors.component_names]
