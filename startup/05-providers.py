@@ -40,7 +40,7 @@ class ProposalNumYMDPathProvider(YMDPathProvider):
             self._base_directory_path / RE.md["cycle"] / RE.md["data_session"] / "assets"
         )
         sep = os.path.sep
-        current_date = date.today().strftime(f"%Y{sep}%m{sep}%d")
+        current_date = date.today().strftime(f"%Y_%m")
         if device_name is None:
             ymd_dir_path = current_date
         elif self._device_name_as_base_dir:
@@ -92,7 +92,8 @@ class ScanIDFilenameProvider(UUIDFilenameProvider):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self._frame_type = frame_type
+        self._frame_type = None
+        self.set_frame_type(frame_type)
         self._uuid_for_scan = None
 
     def set_frame_type(self, new_frame_type: TomoFrameType):
@@ -105,9 +106,9 @@ class ScanIDFilenameProvider(UUIDFilenameProvider):
             )  # Generate a new UUID
 
         if device_name is None or not device_name.startswith("panda"):
-            filename = f"{self._frame_type.value}_{self._uuid_for_scan}"
+            filename = f"{self._frame_type.value}_scan_{str(RE.md['scan_id']).zfill(5)}_{self._uuid_for_scan}"
         else:
-            filename = f"{device_name}_{self._uuid_for_scan}"
+            filename = f"{device_name}_scan_{str(RE.md['scan_id']).zfill(5)}_{self._uuid_for_scan}"
 
         # If we are generating a name for projections, then replace
         if self._frame_type == TomoFrameType.proj and (

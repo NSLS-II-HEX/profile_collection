@@ -4892,6 +4892,11 @@ existing_plans:
         name: POSITIONAL_OR_KEYWORD
         value: 1
       name: detector
+    - default: 'True'
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: time_trigger
     - default: '30'
       description: time for the movement from start_deg to stop_deg degrees, in seconds.
       kind:
@@ -4925,6 +4930,69 @@ existing_plans:
       name: reset_speed
     - default: 'True'
       description: whether to use/check the shutter during the scan
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: use_shutter
+    properties:
+      is_generator: true
+  tomo_loop:
+    module: __main__
+    name: tomo_loop
+    parameters:
+    - kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: number_of_repetitions
+    - kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: exposure_time
+    - kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: num_images
+    - default: None
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: panda
+    - default: None
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: detector
+    - default: 'True'
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: time_trigger
+    - default: '30'
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: scan_time
+    - default: '0'
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: start_deg
+    - default: '180'
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: stop_deg
+    - default: '10'
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: lead_angle
+    - default: '30'
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: reset_speed
+    - default: 'True'
       kind:
         name: POSITIONAL_OR_KEYWORD
         value: 1

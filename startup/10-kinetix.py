@@ -40,11 +40,18 @@ def connect_to_kinetix(kinetix_id):
 
     return kinetix
 
+try:
+    kinetix1 = connect_to_kinetix(1)
+except Exception as e:
+    print(f"Kinetix 1 is unavailable...")
 
-kinetix1 = connect_to_kinetix(1)
-kinetix3 = connect_to_kinetix(3)
-sd.baseline.append(kinetix1.drv.acquire_time)
-RE.preprocessors.append(sd)
+try:
+    kinetix3 = connect_to_kinetix(3)
+except Exception as e:
+    print(f"Kinetix 3 is unavailable...")
+
+#sd.baseline.append(kinetix1.drv.acquire_time)
+#RE.preprocessors.append(sd)
 
 
 # TODO: add as a new component into ophyd-async.
@@ -85,14 +92,14 @@ def inner_kinetix_collect(kinetix_detector):
         else:
             done = True
 
-        detector_stream_name = f"{kinetix_detector.name}_stream"
+        detector_stream_name = f"{kinetix_detector.name}_{kinetix_detector._writer._path_provider._filename_provider._frame_type.value}_stream"
         yield from bps.declare_stream(kinetix_detector, name=detector_stream_name)
 
         yield from bps.collect(
             kinetix_detector,
             # stream=True,
             # return_payload=False,
-            name=f"{kinetix_detector.name}_stream",
+            name=detector_stream_name,
         )
         yield from bps.sleep(0.01)
 
