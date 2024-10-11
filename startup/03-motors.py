@@ -80,8 +80,30 @@ mono = HEXMonochromator("XF:27IDA-OP:1{Mono:DCLM-Ax:", name="mono")
 sample_tower = SampleTower("XF:27IDF-OP:1{SMPL:1-Ax:", name="sample_tower")
 
 
+class TomoRotaryStageHoming(Device):
+
+    home_cmd = Cpt(EpicsSignal, "Start:Home-Cmd")
+    home_status = Cpt(EpicsSignal, "Sts:HomeCmplt-Sts")
+
+    def set(self, value):
+        def wait_for_home_done(value, old_value, **kwargs):
+            print(f"Current homing status: {value}, last homing status: {old_value}")
+            if old_value != 1 and value == 1:
+                return True
+            else:
+                return False
+        
+        status = SubscriptionStatus(self.home_status, run=False, callback=wait_for_home_done)
+        self.home_cmd.put(value)
+        
+        return status
+
+
 class TomoRotaryStage(Device):
     rotary_axis = Cpt(EpicsMotorWithDescription, "Ax:4}Mtr")
+    home = Cpt(TomoRotaryStageHoming, "Ax:4}")
+
+
 
 
 tomo_rotary_stage = TomoRotaryStage("XF:27IDF-OP:1{MC:5-", name="tomo_rotary_stage")
@@ -259,6 +281,9 @@ from nslsii.devices import TwoButtonShutter
 
 
 class HEXTwoButtonShutter(TwoButtonShutter):
+
+    RETRY_PERIOD = 3.0
+    
     def stop(self, *, success=False):
         pass
 

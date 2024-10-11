@@ -20,11 +20,13 @@ def acquire_germ_detector(count_time, detector=None, num=1):
     return uid
 
 
-def count_germ(count_time, num=1, detector=None):
+def count_germ(count_time, num=1, detector=None, md=None):
     if detector is None:
         detector = germ_detector
     yield from bps.mv(detector.count_time, count_time)
-    uid = yield from bp.count([detector], num=num)
+    _md = md or {}
+    _md.update({"tomo_scanning_mode": ScanType.edxd.value})
+    uid = yield from bp.count([detector], num=num, md=_md)
     return uid
 
 
@@ -56,8 +58,7 @@ def sweep_motion(detector, count_time, motor, start, stop, max_moves=1000, md=No
     7,
     7.5]}}
     """
-    if md is None:
-        md = {}
+    md = md or {}
     if "calibrant" not in md:
         raise KeyError("Please specify calibrant as a string")
     # if "export_dir" not in md:
@@ -84,6 +85,8 @@ def sweep_motion(detector, count_time, motor, start, stop, max_moves=1000, md=No
             "max_moves": max_moves,
         },
         "theta": round(theta.user_readback.get(), 3),
+        "tomo_scanning_mode": ScanType.edxd.value,
+
     }
     _md.update(md)
 

@@ -27,6 +27,8 @@ from ophyd.signal import EpicsSignalBase
 from redis_json_dict import RedisJSONDict
 from tiled.client import from_uri
 
+# warnings.filterwarnings("ignore")
+
 plt.ion()
 
 
@@ -90,6 +92,7 @@ configure_base(
 # RE = RunEngine(loop=event_loop)
 RE = RunEngine()
 RE.subscribe(bec)
+RE.preprocessors.append(sd)
 
 tiled_writing_client = from_uri(
     "https://tiled.nsls2.bnl.gov/api/v1/metadata/hex/raw",
@@ -102,6 +105,17 @@ c = tiled_reading_client = from_uri(
     "https://tiled.nsls2.bnl.gov/api/v1/metadata/hex/raw",
     include_data_sources=True,
 )
+
+def logout():
+    """
+    Logout of tiled and reset the default username.
+    This is needed to switch between different users.
+    """
+
+    c.logout()
+
+    from tiled.client.context import clear_default_identity
+    clear_default_identity(c.context.api_uri)
 
 # db = Broker(c)
 
@@ -144,6 +158,7 @@ get_ipython().run_line_magic("autoawait", "call_in_bluesky_event_loop")
 # PandA does not produce any data for plots for now.
 bec.disable_plots()
 bec.disable_table()
+bec.disable_baseline()
 
 runengine_metadata_dir = Path("/nsls2/data/hex/shared/config/runengine-metadata")
 
@@ -200,6 +215,14 @@ def print_docs(name, doc):
     print("============================")
 
 
-RE.subscribe(print_docs)
+#RE.subscribe(print_docs)
+
+def reset_scan_id(scan_id=0):
+    """A fake plan to reset the scan_id via qserver."""
+    yield from bps.null()
+    print(f"Scan_id before: {RE.md['scan_id']}")
+    RE.md["scan_id"] = scan_id
+    print(f"Scan_id after: {RE.md['scan_id']}")
+
 
 file_loading_timer = FileLoadingTimer()
